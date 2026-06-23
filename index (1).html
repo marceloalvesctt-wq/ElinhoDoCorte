@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elinho do Corte — Barbearia</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-emblem">💈</div>
+    <div class="login-logo">Elinho do Corte</div>
+    <div class="login-sub">Barbearia</div>
+    <div class="login-stripe"></div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="Digite seu usuário" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="Digite sua senha" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')fazerLogin()">
+    </div>
+    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--white);letter-spacing:.04em;font-weight:700">ELINHO DO CORTE</div>
+  <div class="loading-sub">Carregando dados...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL AGENDAMENTO -->
+<div class="modal-overlay" id="modal-overlay" onclick="fecharModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-nome">—</div>
+    <div class="modal-tel" id="modal-tel"></div>
+    <div class="modal-sub" id="modal-info">—</div>
+    <div class="modal-row"><span class="modal-label">Serviço</span><span class="modal-value" id="modal-servico">—</span></div>
+    <div class="modal-row"><span class="modal-label">Barbeiro</span><span class="modal-value" id="modal-barbeiro">—</span></div>
+    <div class="modal-row"><span class="modal-label">Data / Horário</span><span class="modal-value" id="modal-datahora">—</span></div>
+    <div class="modal-row"><span class="modal-label">Valor total</span><span class="modal-valor-big" id="modal-valor">—</span></div>
+    <div id="modal-pago-status" style="display:none" class="modal-status-pago">
+      <span>✓ Pago via <strong id="modal-forma-paga">—</strong></span>
+    </div>
+    <div id="modal-ag-status" style="display:none" class="modal-status-ag">
+      <span>✂️ Agendado — aguardando pagamento</span>
+    </div>
+    <div id="modal-sinal-box" class="modal-sinal-box" style="display:none">
+      <div class="modal-sinal-title">💰 Sinal / Entrada</div>
+      <div id="modal-sinal-pago-info" style="display:none" class="modal-sinal-status">
+        <span>✓ Sinal de <strong id="modal-sinal-valor-pago">—</strong> via <strong id="modal-sinal-forma-paga">—</strong></span>
+      </div>
+      <div id="modal-sinal-form">
+        <div class="sinal-input-row"><input type="text" inputmode="decimal" id="sinal-valor" placeholder="Valor do sinal (R$)"></div>
+        <div class="sinal-pgto-mini">
+          <button class="sinal-pgto-btn" id="spgto-pix"      onclick="selecionarSinalPgto('Pix')">💠 Pix</button>
+          <button class="sinal-pgto-btn" id="spgto-dinheiro" onclick="selecionarSinalPgto('Dinheiro')">💵 Din.</button>
+          <button class="sinal-pgto-btn" id="spgto-debito"   onclick="selecionarSinalPgto('Débito')">💳 Déb.</button>
+          <button class="sinal-pgto-btn" id="spgto-credito"  onclick="selecionarSinalPgto('Crédito')">🏦 Cré.</button>
+        </div>
+        <button class="btn-sinal" id="btn-confirmar-sinal" disabled onclick="confirmarSinal()">Registrar sinal</button>
+      </div>
+      <button class="btn-cancelar-pgto" id="btn-remover-sinal" style="display:none;margin-top:8px" onclick="removerSinal()">Remover sinal</button>
+    </div>
+    <div id="modal-pgto-section">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 10px">Forma de pagamento</div>
+      <div class="pgto-grid">
+        <button class="pgto-btn" id="pgto-pix"      onclick="selecionarPgto('Pix')"><span class="pgto-icon">💠</span>Pix</button>
+        <button class="pgto-btn" id="pgto-dinheiro" onclick="selecionarPgto('Dinheiro')"><span class="pgto-icon">💵</span>Dinheiro</button>
+        <button class="pgto-btn" id="pgto-debito"   onclick="selecionarPgto('Débito')"><span class="pgto-icon">💳</span>Débito</button>
+        <button class="pgto-btn" id="pgto-credito"  onclick="selecionarPgto('Crédito')"><span class="pgto-icon">🏦</span>Crédito</button>
+      </div>
+      <button class="btn-confirmar" id="btn-confirmar-pgto" disabled onclick="confirmarPagamento()">Confirmar pagamento</button>
+    </div>
+    <button class="btn-cancelar-pgto" id="btn-cancelar-pgto" style="display:none" onclick="cancelarPagamento()">Cancelar pagamento</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header" id="app-header" style="display:none">
+  <div style="font-size:26px">💈</div>
+  <div class="brand-texts">
+    <div class="brand-name">Elinho do Corte</div>
+    <div class="brand-tag">Barbearia</div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchView('vendas',this)">Vendas</button>
+    <button class="nav-btn" onclick="switchView('agendamentos',this)">Agendamentos</button>
+    <button class="nav-btn" onclick="switchView('calendario',this)">Calendário</button>
+    <button class="nav-btn" onclick="switchView('clientes',this)">Clientes</button>
+    <button class="nav-btn" onclick="switchView('dashboard',this)">Dashboard</button>
+    <button class="nav-btn" onclick="switchView('gastos',this)">Gastos</button>
+  </div>
+  <button class="logout-btn" onclick="fazerLogout()">Sair</button>
+</div>
+
+<div class="main" id="app-main" style="display:none">
+
+  <!-- VENDAS -->
+  <div id="view-vendas" class="view active">
+    <div class="sec" style="margin-top:4px">Registrar venda</div>
+    <div class="barber-stripe"></div>
+    <div class="form-grid">
+      <div class="field"><label>Cliente (opcional)</label><input type="text" id="v-nome" placeholder="Nome do cliente"></div>
+      <div class="field"><label>Barbeiro</label>
+        <select id="v-barbeiro">
+          <option value="">Selecione...</option>
+          <option value="Elinho">Elinho</option>
+          <option value="Junior">Junior</option>
+          <option value="Marcos">Marcos</option>
+          <option value="Rafael">Rafael</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Serviço</div>
+    <div class="venda-tipo-grid" id="servico-grid">
+      <button class="vt-btn" onclick="selecionarServico('Corte Simples',this)"><span class="vt-icon">✂️</span>Corte Simples</button>
+      <button class="vt-btn" onclick="selecionarServico('Corte Degradê',this)"><span class="vt-icon">✂️</span>Corte Degradê</button>
+      <button class="vt-btn" onclick="selecionarServico('Barba',this)"><span class="vt-icon">🪒</span>Barba</button>
+      <button class="vt-btn" onclick="selecionarServico('Corte + Barba',this)"><span class="vt-icon">💈</span>Corte + Barba</button>
+      <button class="vt-btn" onclick="selecionarServico('Barba Completa',this)"><span class="vt-icon">🪒</span>Barba Completa</button>
+      <button class="vt-btn" onclick="selecionarServico('Pigmentação',this)"><span class="vt-icon">🎨</span>Pigmentação</button>
+      <button class="vt-btn" onclick="selecionarServico('Relaxamento',this)"><span class="vt-icon">💆</span>Relaxamento</button>
+      <button class="vt-btn" onclick="selecionarServico('Combo Completo',this)"><span class="vt-icon">⭐</span>Combo Completo</button>
+    </div>
+    <div class="form-grid" style="margin-top:4px">
+      <div class="field"><label>Outro serviço</label><input type="text" id="v-servico-custom" placeholder="Ex: Luzes, Sobrancelha..."></div>
+      <div class="field"><label>Valor (R$)</label><input type="text" inputmode="decimal" id="v-valor" placeholder="Ex: 45,00"></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Pagamento</div>
+    <div class="pgto-rapido" id="pgto-rapido-grid">
+      <button class="pr-btn" onclick="selecionarPgtoVenda('Pix',this)"><span class="pr-icon">💠</span>Pix</button>
+      <button class="pr-btn" onclick="selecionarPgtoVenda('Dinheiro',this)"><span class="pr-icon">💵</span>Dinheiro</button>
+      <button class="pr-btn" onclick="selecionarPgtoVenda('Débito',this)"><span class="pr-icon">💳</span>Débito</button>
+      <button class="pr-btn" onclick="selecionarPgtoVenda('Crédito',this)"><span class="pr-icon">🏦</span>Crédito</button>
+    </div>
+    <div class="resumo-venda" id="resumo-venda" style="display:none">
+      <div class="resumo-row"><span class="resumo-label">Serviço</span><span class="resumo-val" id="rv-servico">—</span></div>
+      <div class="resumo-row"><span class="resumo-label">Barbeiro</span><span class="resumo-val" id="rv-barbeiro">—</span></div>
+      <div class="resumo-row"><span class="resumo-label">Pagamento</span><span class="resumo-val" id="rv-pgto">—</span></div>
+      <div style="height:1px;background:var(--border);margin:8px 0"></div>
+      <div class="resumo-row"><span class="resumo-label">Total</span><span class="resumo-total" id="rv-valor">R$ 0</span></div>
+    </div>
+    <button class="btn-primary" id="btn-add-venda" onclick="addVenda()">✓ Registrar venda</button>
+    <div class="divider"></div>
+    <div class="sec">Vendas de hoje
+      <span style="color:var(--muted);font-size:10px;text-transform:none;letter-spacing:0">&nbsp;—&nbsp;</span>
+      <span id="hoje-total" style="font-family:'Playfair Display',serif;font-size:14px;color:var(--white);font-weight:700">R$ 0,00</span>
+    </div>
+    <div class="filter-tabs">
+      <button class="ftab active" id="ftab-hoje"   onclick="switchFiltro('hoje')">Hoje</button>
+      <button class="ftab" id="ftab-semana"        onclick="switchFiltro('semana')">Esta semana</button>
+      <button class="ftab" id="ftab-todas"         onclick="switchFiltro('todas')">Todas</button>
+    </div>
+    <div id="lista-vendas"></div>
+  </div>
+
+  <!-- AGENDAMENTOS -->
+  <div id="view-agendamentos" class="view">
+    <div class="sec" style="margin-top:4px">Novo agendamento</div>
+    <div class="barber-stripe"></div>
+    <div class="form-grid">
+      <div class="field"><label>Nome do cliente</label><input type="text" id="r-nome" placeholder="Ex: Carlos Oliveira"></div>
+      <div class="field"><label>Telefone</label><input type="tel" id="r-tel" placeholder="(11) 99999-9999"></div>
+      <div class="field"><label>Barbeiro</label>
+        <select id="r-barbeiro">
+          <option value="">Selecione...</option>
+          <option value="Elinho">Elinho</option>
+          <option value="Junior">Junior</option>
+          <option value="Marcos">Marcos</option>
+          <option value="Rafael">Rafael</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="field"><label>Serviço</label>
+        <select id="r-servico">
+          <option value="Corte Simples">Corte Simples</option>
+          <option value="Corte + Barba">Corte + Barba</option>
+          <option value="Barba">Barba</option>
+          <option value="Corte Degradê">Corte Degradê</option>
+          <option value="Corte Navalhado">Corte Navalhado</option>
+          <option value="Barba Completa">Barba Completa</option>
+          <option value="Relaxamento">Relaxamento</option>
+          <option value="Pigmentação">Pigmentação</option>
+          <option value="Luzes / Mechas">Luzes / Mechas</option>
+          <option value="Hidratação">Hidratação</option>
+          <option value="Sobrancelha">Sobrancelha</option>
+          <option value="Combo Completo">Combo Completo</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div class="field"><label>Data</label><input type="date" id="r-data"></div>
+      <div class="field"><label>Horário</label><input type="time" id="r-hora"></div>
+      <div class="field"><label>Valor (R$)</label><input type="text" inputmode="decimal" id="r-valor" placeholder="Ex: 45,00"></div>
+      <div class="field"><label>Observação</label><input type="text" id="r-obs" placeholder="Ex: Degradê alto..."></div>
+    </div>
+    <button class="btn-primary" id="btn-add-reserva" onclick="addReserva()">+ Agendar cliente</button>
+    <div class="divider"></div>
+    <div class="sec">Agendamentos <span style="color:var(--muted);font-size:10px;text-transform:none;letter-spacing:0">&nbsp;— toque para registrar pagamento</span></div>
+    <div id="lista-reservas"><div class="empty"><span class="ic">✂️</span>Nenhum agendamento ainda.</div></div>
+  </div>
+
+  <!-- CALENDÁRIO -->
+  <div id="view-calendario" class="view">
+    <div class="cal-header">
+      <button class="cal-nb" onclick="calNav(-1)">&#8249;</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button class="cal-nb" onclick="calNav(1)">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div id="cal-det"></div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div id="view-clientes" class="view">
+    <div class="sec" style="margin-top:4px">Ficha do Cliente</div>
+    <div id="lista-checklist"><div class="empty"><span class="ic">👤</span>Nenhum cliente ainda.</div></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view">
+
+    <!-- CARDS DE HOJE -->
+    <div class="sec" style="margin-top:4px">Hoje</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:var(--red);border-radius:var(--radius);padding:18px 16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;font-size:56px;opacity:.15">💰</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">Faturamento</div>
+        <div id="hoje-faturamento" style="font-family:'Playfair Display',serif;font-size:26px;color:#fff;font-weight:700;line-height:1">R$ 0</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:4px">vendas + agend. pagos</div>
+      </div>
+      <div style="background:var(--navy2);border:1px solid var(--border2);border-radius:var(--radius);padding:18px 16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;font-size:56px;opacity:.12">✂️</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">Atendimentos</div>
+        <div id="hoje-atendimentos" style="font-family:'Playfair Display',serif;font-size:26px;color:var(--white);font-weight:700;line-height:1">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">cortes hoje</div>
+      </div>
+    </div>
+
+    <!-- RESUMO MENSAL -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="sec" style="margin-bottom:0;flex:1">Mês</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <button class="cal-nb" onclick="dashNavMes(-1)">&#8249;</button>
+        <span id="dash-mes-label" style="font-family:'Playfair Display',serif;font-size:16px;color:var(--white);min-width:110px;text-align:center;font-weight:700"></span>
+        <button class="cal-nb" onclick="dashNavMes(1)">&#8250;</button>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="mlbl">Receita</div><div class="mval" id="m-receita">R$ 0</div><div class="msub">vendas + agend. pagos</div></div>
+      <div class="metric"><div class="mlbl">Atendimentos</div><div class="mval" id="m-qtd">0</div><div class="msub">no mês</div></div>
+      <div class="metric"><div class="mlbl">Gastos</div><div class="mval" id="m-gastos">R$ 0</div><div class="msub">despesas</div></div>
+      <div class="metric"><div class="mlbl">Lucro</div><div class="mval" id="m-lucro">R$ 0</div><div class="msub">líquido</div></div>
+    </div>
+    <div class="metrics-extra">
+      <div class="metric-extra"><div class="mlbl">Ticket Médio</div><div class="mval" id="m-ticket">R$ 0</div><div class="msub2">por atendimento</div></div>
+      <div class="metric-extra"><div class="mlbl">Walk-in</div><div class="mval" id="m-walkin">0</div><div class="msub2">vendas diretas</div></div>
+      <div class="metric-extra"><div class="mlbl">Agend. Pagos</div><div class="mval" id="m-agpagos">0</div><div class="msub2">convertidos</div></div>
+      <div class="metric-extra"><div class="mlbl">Margem</div><div class="mval" id="m-margem">0%</div><div class="msub2">lucro / receita</div></div>
+    </div>
+    <div class="dash-tabs">
+      <button class="dash-tab active" id="dtab-geral"     onclick="switchDashTab('geral')">Geral</button>
+      <button class="dash-tab"        id="dtab-servicos"  onclick="switchDashTab('servicos')">Serviços</button>
+      <button class="dash-tab"        id="dtab-barbeiros" onclick="switchDashTab('barbeiros')">Barbeiros</button>
+      <button class="dash-tab"        id="dtab-pgto"      onclick="switchDashTab('pgto')">Pagamentos</button>
+    </div>
+    <div id="dash-geral">
+      <div class="chart-grid-2">
+        <div class="ccard"><div class="ctitle">Receita por categoria</div><div class="legend" id="leg-cat"></div><div style="position:relative;height:200px"><canvas id="ch-cat"></canvas></div></div>
+        <div class="ccard"><div class="ctitle">Receita vs Gastos</div><div class="legend" id="leg-rg"></div><div style="position:relative;height:200px"><canvas id="ch-rg"></canvas></div></div>
+      </div>
+      <div class="ccard"><div class="ctitle">Walk-in vs Agendamentos</div><div class="legend" id="leg-tipo"></div><div style="position:relative;height:180px"><canvas id="ch-tipo"></canvas></div></div>
+    </div>
+    <div id="dash-servicos" style="display:none">
+      <div class="ccard"><div class="ctitle">Atendimentos por serviço</div><div class="legend" id="leg-serv"></div><div style="position:relative;height:220px"><canvas id="ch-serv"></canvas></div></div>
+      <div class="ccard"><div class="ctitle">Receita por serviço (R$)</div><div style="position:relative;height:220px"><canvas id="ch-serv-rec"></canvas></div></div>
+    </div>
+    <div id="dash-barbeiros" style="display:none">
+      <div class="ccard"><div class="ctitle">Atendimentos por barbeiro</div><div style="position:relative;height:220px"><canvas id="ch-barb"></canvas></div></div>
+      <div class="ccard"><div class="ctitle">Receita por barbeiro (R$)</div><div style="position:relative;height:220px"><canvas id="ch-barb-rec"></canvas></div></div>
+    </div>
+    <div id="dash-pgto" style="display:none">
+      <div class="chart-grid-2">
+        <div class="ccard"><div class="ctitle">Formas de pagamento</div><div class="legend" id="leg-pgto"></div><div style="position:relative;height:200px"><canvas id="ch-pgto"></canvas></div></div>
+        <div class="ccard"><div class="ctitle">Receita por forma (R$)</div><div class="legend" id="leg-pgto-rec"></div><div style="position:relative;height:200px"><canvas id="ch-pgto-rec"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GASTOS -->
+  <div id="view-gastos" class="view">
+    <div class="sec" style="margin-top:4px">Lançar despesa</div>
+    <div class="barber-stripe"></div>
+    <div class="form-grid">
+      <div class="field"><label>Descrição</label><input type="text" id="g-desc" placeholder="Ex: Pomada, lâminas..."></div>
+      <div class="field"><label>Categoria</label>
+        <select id="g-cat">
+          <option value="Produtos">Produtos</option>
+          <option value="Equipamento">Equipamento</option>
+          <option value="Salário">Salário</option>
+          <option value="Aluguel">Aluguel</option>
+          <option value="Energia/Água">Energia/Água</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Manutenção">Manutenção</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div class="field"><label>Valor unitário (R$)</label><input type="text" inputmode="decimal" id="g-valor" placeholder="Ex: 60,00"></div>
+      <div class="field"><label>Quantidade</label><input type="number" id="g-qtd" placeholder="1" min="1" step="1" value="1"></div>
+      <div class="field"><label>Data</label><input type="date" id="g-data"></div>
+    </div>
+    <button class="btn-primary" id="btn-add-gasto" onclick="addGasto()">+ Lançar gasto</button>
+    <div class="divider"></div>
+    <div class="sec">Despesas lançadas</div>
+    <div id="lista-gastos"></div>
+    <div id="total-gastos" class="total-line"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none">
+  <button class="bnav-btn active" id="bnav-vendas"       onclick="switchViewMobile('vendas')"><span class="bnav-icon">💰</span>Vendas</button>
+  <button class="bnav-btn"       id="bnav-agendamentos"  onclick="switchViewMobile('agendamentos')"><span class="bnav-icon">🗓️</span>Agenda</button>
+  <button class="bnav-btn"       id="bnav-clientes"      onclick="switchViewMobile('clientes')"><span class="bnav-icon">👤</span>Clientes</button>
+  <button class="bnav-btn"       id="bnav-dashboard"     onclick="switchViewMobile('dashboard')"><span class="bnav-icon">📊</span>Dashboard</button>
+  <button class="bnav-btn"       id="bnav-gastos"        onclick="switchViewMobile('gastos')"><span class="bnav-icon">💸</span>Gastos</button>
+</nav>
+
+<!-- Scripts -->
+<script src="login.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
