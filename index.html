@@ -489,8 +489,27 @@ body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;font
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;margin-top:4px">
-      <div class="sec" style="margin-bottom:0;flex:1">Resumo</div>
+
+    <!-- CARDS DE HOJE -->
+    <div class="sec" style="margin-top:4px">Hoje</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:var(--red);border-radius:var(--radius);padding:18px 16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;font-size:56px;opacity:.15">💰</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">Faturamento</div>
+        <div id="hoje-faturamento" style="font-family:'Playfair Display',serif;font-size:26px;color:#fff;font-weight:700;line-height:1">R$ 0</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:4px">vendas + agend. pagos</div>
+      </div>
+      <div style="background:var(--navy2);border:1px solid var(--border2);border-radius:var(--radius);padding:18px 16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;font-size:56px;opacity:.12">✂️</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">Atendimentos</div>
+        <div id="hoje-atendimentos" style="font-family:'Playfair Display',serif;font-size:26px;color:var(--white);font-weight:700;line-height:1">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">cortes hoje</div>
+      </div>
+    </div>
+
+    <!-- RESUMO MENSAL -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="sec" style="margin-bottom:0;flex:1">Mês</div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <button class="cal-nb" onclick="dashNavMes(-1)">&#8249;</button>
         <span id="dash-mes-label" style="font-family:'Playfair Display',serif;font-size:16px;color:var(--white);min-width:110px;text-align:center;font-weight:700"></span>
@@ -689,27 +708,42 @@ window._iniciarApp = iniciarApp;
 if(window._loginOk) iniciarApp();
 
 // ── FIREBASE LISTENERS ──
+function mostrarApp(){
+  document.getElementById('loading').classList.add('hide');
+  document.getElementById('app-header').style.display='flex';
+  document.getElementById('app-main').style.display='block';
+  document.getElementById('bottom-nav').style.display='flex';
+}
 function startListeners(){
+  // Timeout de segurança — se demorar mais de 8s, mostra o app mesmo assim
+  const safetyTimer = setTimeout(()=>{
+    mostrarApp();
+    showToast('Conexão lenta. Verifique a internet.','warning');
+  }, 8000);
+
+  let primeiraVenda=false;
   // Vendas
   onSnapshot(query(collection(db,'vendas'),orderBy('criadoEm','desc')), snap=>{
     vendas=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderVendas();
-    document.getElementById('loading').classList.add('hide');
-    document.getElementById('app-header').style.display='flex';
-    document.getElementById('app-main').style.display='block';
-    document.getElementById('bottom-nav').style.display='flex';
-  }, err=>{console.error(err); document.getElementById('loading').classList.add('hide');});
+    if(!primeiraVenda){ primeiraVenda=true; clearTimeout(safetyTimer); mostrarApp(); }
+  }, err=>{
+    console.error('Erro vendas:',err);
+    clearTimeout(safetyTimer);
+    mostrarApp();
+    showToast('Erro ao conectar. Recarregue a página.','error');
+  });
 
   // Agendamentos
   onSnapshot(query(collection(db,'agendamentos'),orderBy('criadoEm','desc')), snap=>{
     reservas=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderLista(); renderChecklist();
-  });
+  }, err=>console.error('Erro agendamentos:',err));
 
   // Gastos
   onSnapshot(query(collection(db,'gastos'),orderBy('data','desc')), snap=>{
     gastos=snap.docs.map(d=>({id:d.id,...d.data()}));
-  });
+  }, err=>console.error('Erro gastos:',err));
 }
 
 // ── NAV ──
@@ -1077,6 +1111,17 @@ function mkChart(id,type,labels,datasets,opts={}){
 }
 function renderDash(){
   atualizarLabelDashMes();
+  // cards de hoje
+  const hoje=dataHoje();
+  const vendasHoje=vendas.filter(v=>v.data===hoje);
+  const agHoje=reservas.filter(r=>r.pago&&r.data===hoje);
+  const fatHoje=vendasHoje.reduce((s,v)=>s+Number(v.valor),0)+agHoje.reduce((s,r)=>s+Number(r.valor),0);
+  const atHoje=vendasHoje.length+agHoje.length;
+  const elFat=document.getElementById("hoje-faturamento");
+  const elAt=document.getElementById("hoje-atendimentos");
+  if(elFat) elFat.textContent="R$ "+fatHoje.toFixed(2);
+  if(elAt) elAt.textContent=atHoje;
+  // metricas do mes
   const y=dashAno,m=dashMes;
   const inMonth=(data)=>{if(!data)return false;const d=parseLocal(data);return d.getFullYear()===y&&d.getMonth()===m;};
   const mV=vendas.filter(v=>inMonth(v.data));
